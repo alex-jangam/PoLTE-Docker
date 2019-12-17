@@ -1,0 +1,24 @@
+{
+  "name": "polte-docker",
+  "version": "1.0.0",
+  "description": "Basic Start options",
+  "scripts": {
+    "start": "docker-compose up",
+    "api": "docker-compose up api",
+    "stop-api": "docker-compose stop api",
+    "r-api" : "docker-compose restart api",
+    "portal" : "docker-compose up portal",
+    "r-portal" : "docker-compose restart portal",
+    "stop-portal": "docker-compose stop portal",
+    "mongo" : "docker-compose up mongo",
+    "r-mongo" : "docker-compose restart mongo",
+    "services" : "docker-compose up cloc-services",
+    "r-service" : "docker-compose restart cloc-services",
+    "api-logs": "docker-compose logs  --tail 100 api",
+    "services-logs": "docker-compose logs --tail 100 cloc-services",
+    "portal-logs": "docker-compose logs --tail 100 portal",
+    "check" : "docker container ls"
+  },
+  "author": "Alex",
+  "license": "MIT"
+}

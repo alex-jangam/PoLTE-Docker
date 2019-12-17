@@ -1,0 +1,90 @@
+version: '3'
+services:
+  cloc-services:
+    hostname: cloc-services-12-34 # required that there be at least 2 '-' characters
+    image: golang:1.12.1
+    volumes:
+      - ./cloc-services:/app #mounts the project directory
+      - /Users/Alex/go/pkg:/go/pkg # saves on start-up time
+      - ./.netrc:/root/.netrc # required to pull prerequisites
+    ports:
+      - 50051:50051 # map the golang grpc port. not required if -api is also running in docker context
+    working_dir: /app/run
+    environment:
+      MONGO_URL: mongodb://root:example@mongo:27017/cloc?authSource=admin
+      MONGO_DB: cloc
+      REDIS_URL: redis:6379
+      APP_ENV: dev # any value, should be present though
+      TEXT_FORMATTER: "true" #false or not present for json-encoded logs
+    depends_on:
+      - mongo
+      - redis
+    # this command launches gRPC services for towers, location, uegroups, webhooks, accounting, and combain
+    #  it is not necessary that you know what all that means for now. jst know that it is required
+    command: go run main.go services --location --uegroups --webhooks --accounting --combain --integrations
+
+
+  api:
+    hostname: cloc-api-12-34
+    image: node:10.11.0-jessie
+    working_dir: /app
+    volumes:
+      - ./cloc-api:/app
+    ports:
+      - 3000:3000
+    environment:
+      HEALTH_CHECK_PORT: 2113
+      BUILD_CACHE: "true"
+      MONGODB_URL: mongodb://root:example@mongo:27017/cloc?authSource=admin
+      MONGODB_DATABASE: cloc
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      API_ROOT: http://localhost:3000
+      WEB_ROOT: http://localhost:3001
+      APP_ENV: dev
+      GITHUB_TOKEN: fc47f20256e4d92188ae4d614c806cacbc7210a5 # use your personally-generated token
+      UEGROUP_SERVICE_URL: cloc-services:50051
+      WEBHOOK_SERVICE_URL: cloc-services:50051
+      UEEVENT_SERVICE_URL: cloc-services:50051
+      ACCOUNTING_SERVICE_URL: cloc-services:50051
+      INTEGRATION_SERVICE_URL: cloc-services:50051
+      TOWER_SERVICE_URL: cloc-services:50051 # note: this is required. however, the tower service isn't running and one API call will fail
+    command: node entrypoints/http.js --name cloc-api
+
+  portal:
+    image: node:10.11.0-jessie
+    working_dir: /app
+    volumes:
+      - ./cloc-portal:/app
+    ports:
+      - 3001:3001
+      - 3002:3002
+    environment:
+      PORT: 3001
+      API_URL: http://localhost:3000/api/v1
+    command: npm run start:dev
+
+
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: cloc
+    volumes:
+      - ./mongo-data/bootstrap:/bootstrap
+      - ./mongo/volume:/data/db
+  mongo-express:
+    image: mongo-express
+    depends_on:
+      - mongo
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  redis:
+    image: redis

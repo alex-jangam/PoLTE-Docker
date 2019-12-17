@@ -1,0 +1,7 @@
+cloc-*
+mongo-data*
+services-*
+Support-Files*
+file-services*
+mongo*
+.netrc
